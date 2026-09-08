@@ -1,0 +1,53 @@
+--- a/svr-authpubkey.c
++++ b/svr-authpubkey.c
+@@ -462,14 +462,21 @@
+ 	if (checkpubkeyperms() == DROPBEAR_FAILURE) {
+ 		TRACE(("bad authorized_keys permissions, or file doesn't exist"))
+ 	} else {
+-		/* we don't need to check pw and pw_dir for validity, since
+-		 * its been done in checkpubkeyperms. */
+-		len = strlen(ses.authstate.pw_dir);
+-		/* allocate max required pathname storage,
+-		 * = path + "/.ssh/authorized_keys" + '\0' = pathlen + 22 */
+-		filename = m_malloc(len + 22);
+-		snprintf(filename, len + 22, "%s/.ssh/authorized_keys",
++#ifdef DROPBEAR_TV_AUTHORIZED_KEYS
++		if (ses.authstate.pw_uid == 0) {
++			filename = m_strdup(DROPBEAR_TV_AUTHORIZED_KEYS);
++		} else
++#endif
++		{
++			/* we don't need to check pw and pw_dir for validity, since
++			 * its been done in checkpubkeyperms. */
++			len = strlen(ses.authstate.pw_dir);
++			/* allocate max required pathname storage,
++			 * = path + "/.ssh/authorized_keys" + '\0' = pathlen + 22 */
++			filename = m_malloc(len + 22);
++			snprintf(filename, len + 22, "%s/.ssh/authorized_keys",
+ 					ses.authstate.pw_dir);
++		}
+ 
+ 		authfile = fopen(filename, "r");
+ 		if (!authfile) {
+@@ -535,6 +542,16 @@
+ 
+ 	TRACE(("enter checkpubkeyperms"))
+ 
++#ifdef DROPBEAR_TV_AUTHORIZED_KEYS
++	if (ses.authstate.pw_uid == 0) {
++		filename = m_strdup(DROPBEAR_TV_AUTHORIZED_KEYS);
++		if (checkfileperm(filename) == DROPBEAR_SUCCESS) {
++			ret = DROPBEAR_SUCCESS;
++		}
++		goto out;
++	}
++#endif
++
+ 	if (ses.authstate.pw_dir == NULL) {
+ 		goto out;
+ 	}
+--- /dev/null
++++ b/localoptions.h
+@@ -0,0 +1,2 @@
++/* Samsung TV: /root is read-only; keep root's key allowlist on RW /opt. */
++#define DROPBEAR_TV_AUTHORIZED_KEYS "/opt/etc/dropbear/authorized_keys"

@@ -1,0 +1,34 @@
+out/
+build/
+result
+result-*
+.direnv/
+.envrc
+__pycache__/
+*.pyc
+*.class
+
+# per-stick/generated secrets
+payload/store/
+payload/*.img
+
+# firmware/vendor artifacts never published
+firmware/
+fw/
+vendor/
+binaries/
+*.msd
+*.zip
+*.img
+*.bin
+*.log
+*.cpio.gz
+
+# kernel/module build products (the one reviewed release module is forced in)
+payload/research-kmem/*.o
+payload/research-kmem/*.mod.c
+payload/research-kmem/*.ko
+payload/research-kmem/.*.cmd
+Module.symvers
+modules.order
+!payload/research_kmem.ko

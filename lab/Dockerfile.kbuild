@@ -1,0 +1,41 @@
+# Period-correct toolchain for building Linux 4.1.10 (2015) for ARMv7.
+#
+# The host is NixOS with GCC 15, which cannot build a 2015 kernel. kernel.org's
+# crosstool binaries are dynamically linked against glibc and will not run on
+# NixOS directly, so the whole kernel build happens inside this container.
+FROM docker.io/library/debian:bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential bc bison flex libssl-dev libelf-dev \
+        ca-certificates curl xz-utils cpio kmod file \
+        gdb-multiarch \
+    && rm -rf /var/lib/apt/lists/*
+
+# GCC 6.4.0 nolibc cross toolchain (kernel builds only need this).
+ARG CT=x86_64-gcc-6.4.0-nolibc-arm-linux-gnueabi.tar.gz
+RUN curl -fsSL -o /tmp/ct.tar.gz \
+      https://mirrors.edge.kernel.org/pub/tools/crosstool/files/bin/x86_64/6.4.0/${CT} \
+    && mkdir -p /opt/ct && tar -xf /tmp/ct.tar.gz -C /opt/ct --strip-components=0 \
+    && rm /tmp/ct.tar.gz
+
+# The 2017-vintage crosstool cc1 links against libisl.so.15 (Debian stretch),
+# which no longer ships in bookworm. Pull just that one library from the Debian
+# archive rather than downgrading the whole base image.
+# cc1 needs the stretch-era isl/mpfr/mpc sonames (libisl.so.15, libmpfr.so.4,
+# libmpc.so.3); bookworm ships isl23/mpfr6/mpc3-with-newer-soname.
+# Extract (do not dpkg -i) the two old sonames into /usr/local/lib. Installing
+# the packages fights bookworm's newer versions; bookworm already provides a
+# compatible libmpc.so.3, so only isl15 + mpfr4 are missing.
+RUN cd /tmp \
+    && curl -fsSL -O http://archive.debian.org/debian/pool/main/i/isl/libisl15_0.18-1_amd64.deb \
+    && curl -fsSL -O http://archive.debian.org/debian/pool/main/m/mpfr4/libmpfr4_3.1.5-1_amd64.deb \
+    && for d in libisl15_*.deb libmpfr4_*.deb; do dpkg-deb -x "$d" /tmp/x; done \
+    && cp -a /tmp/x/usr/lib/x86_64-linux-gnu/*.so.* /usr/local/lib/ \
+    && ldconfig \
+    && rm -rf /tmp/x /tmp/*.deb
+
+ENV PATH=/opt/ct/gcc-6.4.0-nolibc/arm-linux-gnueabi/bin:$PATH
+ENV ARCH=arm
+ENV CROSS_COMPILE=arm-linux-gnueabi-
+
+WORKDIR /work
