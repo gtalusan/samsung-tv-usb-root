@@ -40,9 +40,15 @@ UMH, p2 bootstrap, and a listening dropbear with the shipped exFAT modules.
 The dev shell supplies GNU ARM binutils, ROPgadget, ropper, Capstone and
 pwntools; exploit constants are derived from the shipped target artifacts.
 
-**Do not use this on a different model or firmware. Every address in the
-`tv` profile is specific to T-MSMDEUC 1500.9. A mismatch can hang or reboot the
-TV. Use only on hardware you own.**
+Static analysis additionally found that the complete `tv` profile is unchanged
+across six earlier `T-MSMDEUC` releases and the regional `T-MSMAKUC` and
+`T-MSMUABC` families. Kant, Nike and Pontus representatives retain the bug but
+need separate payload ports. See [Firmware and model compatibility](docs/FIRMWARE-COMPATIBILITY.md).
+
+**Hardware verification currently covers only GQ65Q70RGTXZG with T-MSMDEUC
+1500.9. Do not treat static compatibility as permission to cross-flash or
+blindly use an image on another set. A mismatch can hang or reboot the TV. Use
+only on hardware you own.**
 
 ## Build a stick
 
@@ -156,7 +162,7 @@ lab/                   vendor-kernel/QEMU lab (firmware and GPL source omitted)
 research/findings/      exFAT/ext4/NTFS and CEC analysis
 research/lab-lanes/     reproducible lane scripts/shims (no images/logs)
 research/ghidra/        target-specific Ghidra scripts
-docs/                   provenance, post-exploitation and operator notes
+docs/                   compatibility, provenance, post-exploitation and operator notes
 ```
 
 ## Public prerequisites not included
@@ -164,7 +170,9 @@ docs/                   provenance, post-exploitation and operator notes
 This repository intentionally contains no Samsung firmware, decrypted images,
 shipped proprietary modules, device certificates, keys, or live device dump.
 To recreate the lab, provide your legally obtained firmware artifacts and the
-Samsung GPL Linux source tree as documented in `lab/README.md`.
+Samsung GPL Linux source tree as documented in `lab/README.md`. The analyzed
+archive names, official URLs, hashes and evidence classifications are listed in
+`docs/FIRMWARE-COMPATIBILITY.md`.
 
 ## License
 

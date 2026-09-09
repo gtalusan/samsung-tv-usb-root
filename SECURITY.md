@@ -3,8 +3,10 @@
 This repository contains a working kernel exploit for one exact Samsung TV
 firmware. Use it only on hardware you own or are explicitly authorized to test.
 
-The `tv` profile is restricted to T-MSMDEUC 1500.9. It is not a generic Samsung
-TV exploit. Wrong firmware addresses can hang or reboot the target.
+The `tv` profile was hardware-tested only on T-MSMDEUC 1500.9. A bounded set
+of other T-MSM images is statically zero-delta, but that is not hardware proof
+or permission to cross-flash. This is not a generic Samsung TV exploit; wrong
+firmware addresses can hang or reboot the target.
 
 Before testing:
 
