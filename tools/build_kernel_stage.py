@@ -46,6 +46,32 @@ PROFILES = {
             "/bin/cat $P2/stage1.sh|/bin/bash -s"
         ),
     },
+    "nikem": {
+        "coherent": 0xC001D808,
+        "umh": 0xC003B87C,
+        "park": 0xC05330E0,
+        "uep": None,
+        "path": "/bin/bash",
+        # cfloinc's verified Q70T/NikeM stage command, verbatim (length is
+        # load-bearing: it sets num_ext=67 with the cave blob <= 547 bytes).
+        "command": (
+            "S=;for i in {1..60};do S=$(ls /opt/media/*/stage1.sh 2>/dev/null|head -1);"
+            "[ -n $S ]&&break;/bin/sleep 1;done;"
+            "[ -n $S ]&&{ export P2=${S%/*};/bin/cat $S|/bin/bash -s;}"
+        ),
+    },
+    "nikem-uep": {
+        "coherent": 0xC001D808,
+        "umh": 0xC003B87C,
+        "park": 0xC05330E0,
+        "uep": 0xC01DE028,
+        "path": "/bin/bash",
+        "command": (
+            "S=;for i in {1..60};do S=$(ls /opt/media/*/stage1.sh 2>/dev/null|head -1);"
+            "[ -n $S ]&&break;/bin/sleep 1;done;"
+            "[ -n $S ]&&{ export P2=${S%/*};/bin/cat $S|/bin/bash -s;}"
+        ),
+    },
 }
 
 
